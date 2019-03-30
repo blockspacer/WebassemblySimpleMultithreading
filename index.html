@@ -1,13 +1,7 @@
 <html>
-
 	<script>
-		//var string = function(){/*
-		//lol
-		//*/}.toString().slice(13,-3)
-
-		(async ()=>{
-			
-			//settings 				
+		(async ()=>{			
+			// settings 				
 			const path = 'test.wasm';
 			const memory_init_pages = 4;
 			const page_size = 0x10000;
@@ -17,8 +11,8 @@
 			const table = new WebAssembly.Table({ initial: 1337, element: 'anyfunc' });
 			
 			// load wasm
-			const response = await fetch( path );
-			const raw_buffer = await response.arrayBuffer();
+			const response    = await fetch( path );
+			const raw_buffer  = await response.arrayBuffer();
 			const wasm_module = await WebAssembly.compile(raw_buffer)
 			
 			const imports = { };
@@ -28,38 +22,38 @@
 			
 			imports.env.tableBase = 0;
 			imports.env.__indirect_function_table = table;
+			
+			imports.env.startThread = ( wasm_exported_function ) => {
+				console.log("Main: starting Thread on function: %d" , wasm_exported_function )
+				
+				let worker = new Worker("/worker.js");			
+				worker.onmessage = function(e) {};
 
-			var worker = new Worker("/worker.js");
+				// sending the thread data to the worker thread 
+				let thread_info = {
+					command : "thread_start",
+					thread_entry_ptr : wasm_exported_function,
+					memory : memory,
+					module : wasm_module,
+				}
+
+				worker.postMessage(thread_info);				
+			}
+
+			imports.env.someFunc = ( ) => console.log("Main: imports.env.someFunc called" )
 			
-			worker.onmessage = function(e) {
-				console.log("Worker: " + e.data);
-			};
-			
+			// Instantiate the module
 			const instance = await new WebAssembly.Instance(wasm_module, imports );
-			
+
 			console.log( "WebAssembly::Instance" );
 			console.log( "WebAssembly::Memory Size: %d Bytes" , memory.buffer.byteLength );
 			console.log( "WebAssembly::Table Size: %d Entries" , table.length );
 			console.log( "WebAssembly::__heap_base is @0x%s" , (instance.exports.__heap_base).value.toString(16));
 			console.log( "WebAssembly::__data_end  is @0x%s" , (instance.exports.__data_end).value.toString(16));
 			
-			const index_to_read = 1
-			const value = 1
+			console.log("Main: main called");
+			const adr = instance.exports.main();
 			
-			const adr =  instance.exports.set(index_to_read*4,value) // index_to_read * sizeof(int)
-			console.log( "MainThread: first call" , adr );
-			
-			
-			console.log( "MainThread: fist check" , new Uint32Array( imports.env.memory.buffer )[1] ) 			
-			
-			worker.postMessage(memory);
-			
-			console.log( "MainThread: After worker Call:" , new Uint32Array( imports.env.memory.buffer )[index_to_read] ) 
-			
-			setTimeout( () => { 			
-				console.log( "MainThread: after 1 Sec:" , new Uint32Array( imports.env.memory.buffer )[index_to_read] ) 
-			}, 1000 );
-		
 		})();
 	
 	
