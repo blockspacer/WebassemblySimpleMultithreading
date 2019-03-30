@@ -7,6 +7,9 @@
 			const page_size = 0x10000;
 			const heap_start = page_size * memory_init_pages;
 			
+			const thread_count = 4;
+			const threads = [];
+
 			const memory = new WebAssembly.Memory( { initial: memory_init_pages,shared: true, maximum:20} );
 			const table = new WebAssembly.Table({ initial: 1337, element: 'anyfunc' });
 			
@@ -22,22 +25,54 @@
 			
 			imports.env.tableBase = 0;
 			imports.env.__indirect_function_table = table;
-			
+		
 			imports.env.startThread = ( wasm_exported_function ) => {
-				console.log("Main: starting Thread on function: %d" , wasm_exported_function )
 				
-				let worker = new Worker("/worker.js");			
-				worker.onmessage = function(e) {};
+				// console.log("Main: starting Thread on function: %d" , wasm_exported_function )				
+				
+				for ( let i in threads ){ 
+					let thread = threads[i]
+					
+					if ( !thread.bFree )
+						continue;
 
-				// sending the thread data to the worker thread 
-				let thread_info = {
-					command : "thread_start",
-					thread_entry_ptr : wasm_exported_function,
-					memory : memory,
-					module : wasm_module,
+					let thread_info = {
+						command : "thread_start",
+						thread_entry_ptr : wasm_exported_function,
+						memory : memory,
+						module : wasm_module,
+					}
+
+					thread.bFree = false;
+					thread.postMessage(thread_info);
+
+					return 1;
 				}
 
-				worker.postMessage(thread_info);				
+				if( threads.length < thread_count ){
+					let thread = new Worker("/worker.js");			
+				
+					thread.onmessage = function(e) {
+						thread.bFree = true;
+					};					
+					
+					thread.bFree = false;
+					
+					let thread_info = {
+						command : "thread_start",
+						thread_entry_ptr : wasm_exported_function,
+						memory : memory,
+						module : wasm_module,
+					}
+
+					thread.postMessage(thread_info);
+
+					threads.push( thread );
+
+					return 1;
+				}
+
+				return 0;
 			}
 
 			imports.env.someFunc = ( ) => console.log("Main: imports.env.someFunc called" )
@@ -52,7 +87,8 @@
 			console.log( "WebAssembly::__data_end  is @0x%s" , (instance.exports.__data_end).value.toString(16));
 			
 			console.log("Main: main called");
-			const adr = instance.exports.main();
+			const did_pass = instance.exports.main();
+			console.log("Main returend: %d" , did_pass )
 			setInterval( () =>console.log(instance.exports.lol()), 100 )
 			
 		})();

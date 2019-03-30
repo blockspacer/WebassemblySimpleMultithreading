@@ -6,7 +6,7 @@
 typedef void (*thread_entry_ptr_t)(void);
 
 extern "C" {
-	void startThread( thread_entry_ptr_t func );
+	int startThread( thread_entry_ptr_t func );
 	void someFunc();
 }
 
@@ -26,7 +26,6 @@ export int lol(){
 	return i;
 }
 
-export int main( ) {	
-	startThread( inf );
-  	return 0;
+export int main( ) {
+  	return startThread( inf );
 }
