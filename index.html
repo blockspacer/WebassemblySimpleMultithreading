@@ -26,7 +26,7 @@
 			imports.env.startThread = ( wasm_exported_function ) => {
 				console.log("Main: starting Thread on function: %d" , wasm_exported_function )
 				
-				let worker = new Worker("./worker.js");			
+				let worker = new Worker("worker.js");			
 				worker.onmessage = function(e) {};
 
 				// sending the thread data to the worker thread 
