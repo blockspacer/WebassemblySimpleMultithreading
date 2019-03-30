@@ -28,6 +28,7 @@
 		
 			imports.env.startThread = ( wasm_exported_function ) => {
 				
+<<<<<<< HEAD
 				// console.log("Main: starting Thread on function: %d" , wasm_exported_function )				
 				
 				for ( let i in threads ){ 
@@ -70,6 +71,17 @@
 					threads.push( thread );
 
 					return 1;
+=======
+				let worker = new Worker("worker.js");			
+				worker.onmessage = function(e) {};
+
+				// sending the thread data to the worker thread 
+				let thread_info = {
+					command : "thread_start",
+					thread_entry_ptr : wasm_exported_function,
+					memory : memory,
+					module : wasm_module,
+>>>>>>> 3e5fb9ebe96deb01e705ccea415826409deb70e6
 				}
 
 				return 0;
