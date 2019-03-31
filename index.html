@@ -7,7 +7,7 @@
 			const page_size = 0x10000;
 			const heap_start = page_size * memory_init_pages;
 			
-			const thread_count = 4;
+			const thread_count = navigator.hardwareConcurrency || 4;
 			const threads = [];
 
 			const memory = new WebAssembly.Memory( { initial: memory_init_pages,shared: true, maximum:20} );
@@ -30,6 +30,7 @@
 				
 				// console.log("Main: starting Thread on function: %d" , wasm_exported_function )				
 				
+				// check for a free thread in the pool
 				for ( let i in threads ){ 
 					let thread = threads[i]
 					
@@ -48,12 +49,16 @@
 
 					return 1;
 				}
-
+				
+				// if no free thread found create a new worker if possible
 				if( threads.length < thread_count ){
 					let thread = new Worker("worker.js");			
 				
 					thread.onmessage = function(e) {
-						thread.bFree = true;
+						let worker_data = e.data;
+						if( worker_data.command == "thread_ended" ){
+							this.bFree = true;
+						}
 					};					
 					
 					thread.bFree = false;
@@ -67,11 +72,12 @@
 
 					thread.postMessage(thread_info);
 
-					threads.push( thread);
- 
+					threads.push( thread );
+
 					return 1;
 				}
-
+				
+				// if no thread is free and no new thread is available return 0 
 				return 0;
 			}
 

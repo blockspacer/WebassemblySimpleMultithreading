@@ -20,7 +20,10 @@ onmessage = function(e) {
 		( async () => {			
 			let instance = await WebAssembly.instantiate(thread_info.module, imports)			
 			let thread_entry_func = table.get( thread_info.thread_entry_ptr )
-			thread_entry_func();					
+			thread_entry_func();			
+			postMessage({
+				command : "thread_ended"
+			});// this tells the main thread that the worker is finished and now can do other stuff
 		})();
 	}
 };

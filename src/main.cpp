@@ -18,7 +18,7 @@ void inf( ){
 	while (1){
 		i += 1;
 		if ( i > 10000 )
-			i = 0;
+			break;
 	}
 }
 
